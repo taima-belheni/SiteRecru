@@ -4,7 +4,24 @@ const db = require('../config/database'); // connexion MySQL
 exports.createOfferForRecruiter = async (req, res) => {
     try {
         const { recruiterId } = req.params;
-        const { title, description, location, type, salary } = req.body;
+        const { title, 
+            date_offer, 
+            date_expiration,
+            // Requirement fields
+            jobTitle,
+            tags,
+            jobRole,
+            minSalary,
+            maxSalary,
+            salaryType,
+            education,
+            experience,
+            jobType,
+            vacancies,
+            expirationDate,
+            jobLevel,
+            description,
+            responsibilities } = req.body;
 
         if (!title) {
             return res.status(400).json({
@@ -29,23 +46,45 @@ exports.createOfferForRecruiter = async (req, res) => {
             });
         }
 
-        // Création de l'offre (ton code original)
+        // Création de l'offre 
         const offerId = await Offer.create({
             recruiter_id: recruiterId,
             title,
-            description,
-            location,
-            type,
-            salary,
-            date_offer: new Date()
+            date_offer,
+            date_expiration
         });
 
+
+        // Create Requirement with the offer_id
+        const requirementId = await Requirement.create({
+            offer_id: offerId,
+            jobTitle,
+            tags,
+            jobRole,
+            minSalary,
+            maxSalary,
+            salaryType,
+            education,
+            experience,
+            jobType,
+            vacancies,
+            expirationDate,
+            jobLevel,
+            description,
+            responsibilities
+        });
+
+
         const newOffer = await Offer.findById(offerId);
+        const newRequirement = await Requirement.findById(requirementId);
 
         res.status(201).json({
             status: 'SUCCESS',
             message: 'Offre créée avec succès',
-            data: newOffer
+            data: {
+                offer: newOffer,
+                requirement: newRequirement
+            }
         });
 
     } catch (error) {
@@ -96,7 +135,7 @@ exports.getOffersByRecruiter = async (req, res) => {
         });
     }
 };
-// Récupérer les détails d'une offre par ID
+// Récupérer les détails d'une offre par ID (avec REQUIREMENT)
 exports.getOfferById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -111,10 +150,14 @@ exports.getOfferById = async (req, res) => {
             });
         }
 
+        const requirement = await Requirement.findByOfferId(id);
         res.status(200).json({
             status: 'SUCCESS',
             message: `Détails de l'offre ${id}`,
-            data: offer
+            data: {
+                offer: offer,
+                requirement: requirement || null
+            }
         });
 
     } catch (error) {
@@ -130,48 +173,102 @@ exports.getOfferById = async (req, res) => {
 // Modifier une offre par ID
 exports.updateOffer = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { title, description, location, type, salary, date_offer, date_expiration } = req.body;
+                const { id } = req.params;
+                const { title, date_offer, date_expiration,
+                    // <CHANGE> Added all requirement fields
+                    jobTitle, tags, jobRole, minSalary, maxSalary, salaryType,
+                    education, experience, jobType, vacancies, expirationDate, jobLevel,
+                    description, responsibilities
+                } = req.body;
 
-        // Vérifier que l'offre existe
-        const offer = await Offer.findById(id);  // ✅ Correction ici
-        if (!offer) {
-            return res.status(404).json({
-                status: 'ERROR',
-                message: `Offre avec ID ${id} non trouvée`
-            });
-        }
+                // Vérifier que l'offre existe
+                const offer = await Offer.findById(id); 
+                if (!offer) {
+                    return res.status(404).json({
+                        status: 'ERROR',
+                        message: `Offre avec ID ${id} non trouvée`
+                    });
+                }
 
-        // Mise à jour
-        const updated = await Offer.update(id, {
-            title: title || offer.title,
-            date_offer: date_offer || offer.date_offer,
-            date_expiration: date_expiration || offer.date_expiration
-        });
+                // Convert dates to YYYY-MM-DD format if they come as ISO8601 strings
+                const formatDateForMySQL = (dateValue) => {
+                    if (!dateValue) return null;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                        return dateValue;
+                    }
+                    if (dateValue.includes('T')) {
+                        return dateValue.split('T')[0];
+                    }
+                    return dateValue;
+                };
 
-        if (!updated) {
-            return res.status(400).json({
-                status: "ERROR",
-                message: "La mise à jour a échoué"
-            });
-        }
+                // Mise à jour de l'offre
+                const updated = await Offer.update(id, {
+                    title: title || offer.title,
+                    date_offer: formatDateForMySQL(date_offer) || offer.date_offer,
+                    date_expiration: formatDateForMySQL(date_expiration) || offer.date_expiration
+                });
 
-        const newOffer = await Offer.findById(id);
+                if (!updated) {
+                    return res.status(400).json({
+                        status: "ERROR",
+                        message: "La mise à jour de l'offre a échoué"
+                    });
+                }
 
-        res.status(200).json({
-            status: 'SUCCESS',
-            message: `Offre ${id} mise à jour`,
-            data: newOffer
-        });
+                // Mise à jour du requirement si les données sont fournies
+                if (jobTitle !== undefined) {
+                    const requirement = await Requirement.findByOfferId(id);
+                    if (requirement) {
+                        const requirementUpdated = await Requirement.update(requirement.id, {
+                            jobTitle: jobTitle || requirement.jobTitle,
+                            tags: tags !== undefined ? tags : requirement.tags,
+                            jobRole: jobRole !== undefined ? jobRole : requirement.jobRole,
+                            minSalary: minSalary !== undefined ? minSalary : requirement.minSalary,
+                            maxSalary: maxSalary !== undefined ? maxSalary : requirement.maxSalary,
+                            salaryType: salaryType !== undefined ? salaryType : requirement.salaryType,
+                            education: education !== undefined ? education : requirement.education,
+                            experience: experience !== undefined ? experience : requirement.experience,
+                            jobType: jobType !== undefined ? jobType : requirement.jobType,
+                            vacancies: vacancies !== undefined ? vacancies : requirement.vacancies,
+                            expirationDate: formatDateForMySQL(expirationDate) || requirement.expirationDate,
+                            jobLevel: jobLevel !== undefined ? jobLevel : requirement.jobLevel,
+                            description: description !== undefined ? description : requirement.description,
+                            responsibilities: responsibilities !== undefined ? responsibilities : requirement.responsibilities
+                        });
 
-    } catch (error) {
-        console.error('Erreur modification offre :', error);
-        res.status(500).json({
-            status: 'ERROR',
-            message: 'Erreur serveur',
-            error: error.message
-        });
-    }
+                        if (!requirementUpdated) {
+                            return res.status(400).json({
+                                status: "ERROR",
+                                message: "La mise à jour des exigences a échoué"
+                            });
+                        }
+                    }
+
+                    const newOffer = await Offer.findById(id);
+                    const newRequirement = await Requirement.findByOfferId(id);
+
+
+                
+
+                res.status(200).json({
+                    status: 'SUCCESS',
+                    message: `Offre ${id} mise à jour`,
+                    data: {
+                        offer: newOffer,
+                        requirement: newRequirement || null
+                    }
+                })
+                };
+
+            } catch (error) {
+                console.error('Erreur modification offre :', error);
+                res.status(500).json({
+                    status: 'ERROR',
+                    message: 'Erreur serveur',
+                    error: error.message
+                });
+            }
 };
 
 

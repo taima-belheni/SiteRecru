@@ -12,5 +12,8 @@ router.post('/login', authController.login);
 // Logout (route protégée pour exemple)
 router.post('/logout', authMiddleware, authController.logout);
 
+// Mettre à jour le profil utilisateur
+router.put('/users/:userId/profile', authMiddleware, authController.updateUserProfile);
+
 module.exports = router;
 

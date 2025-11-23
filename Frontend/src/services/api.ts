@@ -36,7 +36,11 @@ class ApiService {
 
     if (!response.ok) {
       if (response.status === 401) throw new Error(data.message || 'Session expired. Please log in again.');
-      throw new Error(data.message || 'Erreur API');
+      // Include error details in development
+      const errorMessage = data.error 
+        ? `${data.message || 'Erreur API'}: ${data.error}` 
+        : data.message || 'Erreur API';
+      throw new Error(errorMessage);
     }
 
     return data;
@@ -95,17 +99,36 @@ class ApiService {
     return response.data!;
   }
 
+  async getJobDetails(id: number): Promise<{ offer: Offer; requirement: any }> {
+    const response = await this.request<{ offer: Offer; requirement: any }>(`/offers/${id}`);
+    return response.data!;
+  }
+
   async createOfferForRecruiter(
     recruiterId: number,
     offerData: {
+      // Offer fields
       title: string;
+      date_offer?: string;
+      date_expiration?: string;
+      // Requirement fields
+      jobTitle: string;
+      tags?: string;
+      jobRole?: string;
+      minSalary?: number;
+      maxSalary?: number;
+      salaryType?: 'Yearly' | 'Monthly' | 'Hourly';
+      education?: string;
+      experience?: string;
+      jobType?: 'CDI' | 'CDD' | 'Stage' | 'Freelance' | 'Part-time';
+      vacancies?: number;
+      expirationDate?: string;
+      jobLevel?: 'Junior' | 'Mid-level' | 'Senior';
       description?: string;
-      location?: string;
-      type?: string;
-      salary?: number;
+      responsibilities?: string;
     }
-  ): Promise<{ id: number; message: string; data?: Offer }> {
-    const response = await this.request<{ id: number; message: string; data?: Offer }>(
+  ): Promise<{ message: string; data?: { offer: Offer; requirement: any } }> {
+    const response = await this.request<{ message: string; data?: { offer: Offer; requirement: any } }>(
       `/recruiters/${recruiterId}/offers`,
       { method: 'POST', body: JSON.stringify(offerData) }
     );
@@ -114,9 +137,28 @@ class ApiService {
 
   async updateOffer(
     offerId: number,
-    offerData: Partial<{ title: string; description: string; location: string; type: string; salary: number; date_offer: string; date_expiration: string }>
-  ): Promise<{ message: string; data?: Offer }> {
-    const response = await this.request<{ message: string; data?: Offer }>(`/offers/${offerId}`, {
+    offerData: Partial<{ 
+      title: string; 
+      date_offer?: string; 
+      date_expiration?: string;
+      // Requirement fields
+      jobTitle?: string;
+      tags?: string;
+      jobRole?: string;
+      minSalary?: number;
+      maxSalary?: number;
+      salaryType?: 'Yearly' | 'Monthly' | 'Hourly';
+      education?: string;
+      experience?: string;
+      jobType?: 'CDI' | 'CDD' | 'Stage' | 'Freelance' | 'Part-time';
+      vacancies?: number;
+      expirationDate?: string;
+      jobLevel?: 'Junior' | 'Mid-level' | 'Senior';
+      description?: string;
+      responsibilities?: string;
+    }>
+  ): Promise<{ message: string; data?: { offer: Offer; requirement: any } }> {
+    const response = await this.request<{ message: string; data?: { offer: Offer; requirement: any } }>(`/offers/${offerId}`, {
       method: 'PUT',
       body: JSON.stringify(offerData),
     });
@@ -171,6 +213,17 @@ class ApiService {
     payload: Partial<{ company_name: string; industry: string; description: string; company_email: string; company_address: string }>
   ): Promise<{ message: string; data?: any }> {
     const response = await this.request<{ message: string; data?: any }>(`/recruiters/${recruiterId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return response.data!;
+  }
+
+  async updateUserProfile(
+    userId: number,
+    payload: Partial<{ first_name: string; last_name: string; email: string; oldPassword: string; newPassword: string }>
+  ): Promise<{ message: string; data?: any }> {
+    const response = await this.request<{ message: string; data?: any }>(`/auth/users/${userId}/profile`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });

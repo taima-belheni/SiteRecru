@@ -56,7 +56,20 @@ CREATE TABLE IF NOT EXISTS offers (
 CREATE TABLE IF NOT EXISTS requirements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     offer_id INT NOT NULL,
-    description TEXT NOT NULL,
+    jobTitle VARCHAR(255) NOT NULL,
+    tags VARCHAR(500),
+    jobRole VARCHAR(255),
+    minSalary DECIMAL(10, 2),
+    maxSalary DECIMAL(10, 2),
+    salaryType ENUM('Yearly', 'Monthly', 'Hourly'),
+    education VARCHAR(100),
+    experience VARCHAR(100),
+    jobType ENUM('CDI', 'CDD', 'Stage', 'Freelance', 'Part-time'),
+    vacancies INT,
+    expirationDate DATE,
+    jobLevel ENUM('Junior', 'Mid-level', 'Senior'),
+    description TEXT,
+    responsibilities TEXT,
     FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

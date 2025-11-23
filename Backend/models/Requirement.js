@@ -3,12 +3,64 @@ const db = require('../config/database');
 class Requirement {
     // Créer une exigence
     static async create(requirementData) {
-        const { offer_id, description } = requirementData;
+        const { 
+            offer_id, 
+            jobTitle,
+            tags,
+            jobRole,
+            minSalary,
+            maxSalary,
+            salaryType,
+            education,
+            experience,
+            jobType,
+            vacancies,
+            expirationDate,
+            jobLevel,
+            description,
+            responsibilities
+        } = requirementData;
+
         const [result] = await db.query(
-            'INSERT INTO requirements (offer_id, description) VALUES (?, ?)',
-            [offer_id, description]
+            `INSERT INTO requirements 
+            (offer_id, jobTitle, tags, jobRole, minSalary, maxSalary, salaryType, 
+             education, experience, jobType, vacancies, expirationDate, jobLevel, description, responsibilities) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [offer_id, jobTitle, tags, jobRole, minSalary, maxSalary, salaryType, 
+             education, experience, jobType, vacancies, expirationDate, jobLevel, description, responsibilities]
         );
         return result.insertId;
+    }
+
+    // <CHANGE> Updated to handle all job posting fields
+    static async update(id, requirementData) {
+        const { 
+            jobTitle,
+            tags,
+            jobRole,
+            minSalary,
+            maxSalary,
+            salaryType,
+            education,
+            experience,
+            jobType,
+            vacancies,
+            expirationDate,
+            jobLevel,
+            description,
+            responsibilities
+        } = requirementData;
+
+        const [result] = await db.query(
+            `UPDATE requirements 
+            SET jobTitle = ?, tags = ?, jobRole = ?, minSalary = ?, maxSalary = ?, 
+                salaryType = ?, education = ?, experience = ?, jobType = ?, vacancies = ?, 
+                expirationDate = ?, jobLevel = ?, description = ?, responsibilities = ? 
+            WHERE id = ?`,
+            [jobTitle, tags, jobRole, minSalary, maxSalary, salaryType, education, 
+             experience, jobType, vacancies, expirationDate, jobLevel, description, responsibilities, id]
+        );
+        return result.affectedRows > 0;
     }
 
     // Récupérer les exigences d'une offre
@@ -26,14 +78,6 @@ class Requirement {
         return rows[0];
     }
 
-    // Mettre à jour une exigence
-    static async update(id, description) {
-        const [result] = await db.query(
-            'UPDATE requirements SET description = ? WHERE id = ?',
-            [description, id]
-        );
-        return result.affectedRows > 0;
-    }
 
     // Supprimer une exigence
     static async delete(id) {

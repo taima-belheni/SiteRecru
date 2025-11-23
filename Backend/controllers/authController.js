@@ -202,3 +202,73 @@ exports.logout = (req, res) => {
         message: `Déconnexion réussie pour ${req.user.email}`
     });
 };
+
+// Mettre à jour le profil utilisateur
+exports.updateUserProfile = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { first_name, last_name, email, oldPassword, newPassword } = req.body;
+
+        // Vérifier que l'utilisateur existe
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: 'ERROR',
+                message: 'Utilisateur non trouvé'
+            });
+        }
+
+        // Mise à jour des informations de base
+        if (first_name !== undefined || last_name !== undefined || email !== undefined) {
+            const updateData = {};
+            if (first_name !== undefined) updateData.first_name = first_name;
+            if (last_name !== undefined) updateData.last_name = last_name;
+            if (email !== undefined) updateData.email = email;
+
+            const updated = await User.updateProfile(userId, updateData);
+            if (!updated) {
+                return res.status(400).json({
+                    status: 'ERROR',
+                    message: 'Erreur lors de la mise à jour du profil'
+                });
+            }
+        }
+
+        // Mise à jour du mot de passe si fourni
+        if (oldPassword && newPassword) {
+            const isMatch = await bcrypt.compare(oldPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({
+                    status: 'ERROR',
+                    message: 'Ancien mot de passe incorrect'
+                });
+            }
+
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await User.updatePassword(userId, hashedPassword);
+        }
+
+        // Récupérer l'utilisateur mis à jour
+        const updatedUser = await User.findById(userId);
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            message: 'Profil mis à jour avec succès',
+            data: {
+                id: updatedUser.id,
+                first_name: updatedUser.first_name,
+                last_name: updatedUser.last_name,
+                email: updatedUser.email,
+                role: updatedUser.role
+            }
+        });
+
+    } catch (error) {
+        console.error('Erreur updateUserProfile:', error);
+        res.status(500).json({
+            status: 'ERROR',
+            message: 'Erreur serveur',
+            error: error.message
+        });
+    }
+};

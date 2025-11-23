@@ -12,6 +12,8 @@ import RecruiterDashboard from './pages/RecruiterDashboard.tsx';
 import Settings from './pages/Settings.tsx';
 import PostJobPage from './pages/PostJobPage.tsx';
 import MyJobs from './pages/MyJobs.tsx';
+import JobDetails from './pages/JobDetails.tsx';
+import EmployerProfile from './pages/EmployerProfile.tsx';
 
 //Added MyJobs route in App.tsx and imported MyJobs.
 //Updated PostJobPage.tsx sidebar handler so clicking "My Jobs" navigates to /my-jobs.
@@ -116,6 +118,16 @@ function App() {
           <Route path="/my-jobs" element={
             isAuthenticated && user?.role === 'recruiter'
               ? <MyJobs onLogout={handleLogout} user={user || undefined} />
+              : <Navigate to="/signin" />
+          } />
+          <Route path="/job-details/:id" element={
+            isAuthenticated && user?.role === 'recruiter'
+              ? <JobDetails onLogout={handleLogout} user={user || undefined} />
+              : <Navigate to="/signin" />
+          } />
+          <Route path="/employer-profile" element={
+            isAuthenticated && user?.role === 'recruiter'
+              ? <EmployerProfile onLogout={handleLogout} user={user || undefined} />
               : <Navigate to="/signin" />
           } />
         </Routes>

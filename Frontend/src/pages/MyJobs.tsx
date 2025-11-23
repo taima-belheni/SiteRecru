@@ -160,6 +160,8 @@ const MyJobs: React.FC<DashboardProps> = ({ onLogout, user }) => {
           });
           setShowEditModal(true);
         }
+      } else if (action === 'view') {
+        navigate(`/job-details/${jobId}`);
       } else if (action === 'delete') {
         setJobToDelete(jobId);
         setShowDeleteConfirm(true);

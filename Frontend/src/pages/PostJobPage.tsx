@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import './PostJobPage.css';
 import type { DashboardProps } from '../types';
 import { apiService } from '../services/api';
@@ -23,6 +23,11 @@ interface PostJobFormData {
 
 const PostJobPage: React.FC<DashboardProps> = ({ onLogout, user }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editJobId = searchParams.get('edit');
+  const isEditMode = !!editJobId;
+  const [isLoading, setIsLoading] = useState(isEditMode);
+  
   const [formData, setFormData] = useState<PostJobFormData>({
     jobTitle: '',
     tags: '',
@@ -40,6 +45,68 @@ const PostJobPage: React.FC<DashboardProps> = ({ onLogout, user }) => {
     responsibilities: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load job data if in edit mode
+  useEffect(() => {
+    const loadJobData = async () => {
+      if (!isEditMode || !editJobId) return;
+
+      try {
+        const jobData = await apiService.getJobDetails(parseInt(editJobId));
+        const { offer, requirement } = jobData;
+
+        if (requirement) {
+          // Reverse map jobType from backend to frontend
+          const jobTypeReverseMap: { [key: string]: string } = {
+            'CDI': 'Full Time',
+            'CDD': 'Contract',
+            'Stage': 'Internship',
+            'Freelance': 'Temporary',
+            'Part-time': 'Part Time'
+          };
+
+          // Reverse map salaryType
+          const salaryTypeReverseMap: { [key: string]: string } = {
+            'Yearly': 'Annually',
+            'Monthly': 'Monthly',
+            'Hourly': 'Hourly'
+          };
+
+          // Reverse map jobLevel
+          const jobLevelReverseMap: { [key: string]: string } = {
+            'Mid-level': 'Mid Level',
+            'Junior': 'Junior',
+            'Senior': 'Senior'
+          };
+
+          setFormData({
+            jobTitle: requirement.jobTitle || '',
+            tags: requirement.tags || '',
+            jobRole: requirement.jobRole || '',
+            minSalary: requirement.minSalary ? requirement.minSalary.toString() : '',
+            maxSalary: requirement.maxSalary ? requirement.maxSalary.toString() : '',
+            salaryType: requirement.salaryType ? (salaryTypeReverseMap[requirement.salaryType] || requirement.salaryType) : '',
+            education: requirement.education || '',
+            experience: requirement.experience || '',
+            jobType: requirement.jobType ? (jobTypeReverseMap[requirement.jobType] || requirement.jobType) : '',
+            vacancies: requirement.vacancies ? requirement.vacancies.toString() : '',
+            expirationDate: requirement.expirationDate || offer.date_expiration || '',
+            jobLevel: requirement.jobLevel ? (jobLevelReverseMap[requirement.jobLevel] || requirement.jobLevel) : '',
+            description: requirement.description || '',
+            responsibilities: requirement.responsibilities || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading job data:', error);
+        alert('Failed to load job data. Redirecting...');
+        navigate('/dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadJobData();
+  }, [isEditMode, editJobId, navigate]);
 
   const navigationItems = [
     { id: 'Home', label: 'Home' },
@@ -128,34 +195,80 @@ const PostJobPage: React.FC<DashboardProps> = ({ onLogout, user }) => {
         'Temporary': 'Freelance'
       };
 
-      // Combine description and responsibilities
-      const fullDescription = [
-        formData.description,
-        formData.responsibilities && `Responsibilities:\n${formData.responsibilities}`
-      ].filter(Boolean).join('\n\n');
-
-      // Use maxSalary if available, otherwise minSalary, or undefined
-      const salary = formData.maxSalary 
-        ? parseFloat(formData.maxSalary) 
-        : formData.minSalary 
-        ? parseFloat(formData.minSalary) 
-        : undefined;
-
-      // Create offer object matching backend expectations
-      const offerData = {
-        title: formData.jobTitle,
-        description: fullDescription || undefined,
-        location: formData.tags || undefined, // Using tags as location for now
-        type: formData.jobType ? (jobTypeMap[formData.jobType] || formData.jobType) : undefined,
-        salary: salary
+      // Map salary type from frontend to backend
+      const salaryTypeMap: { [key: string]: string } = {
+        'Annually': 'Yearly',
+        'Monthly': 'Monthly',
+        'Hourly': 'Hourly'
       };
 
-      // Call the correct API endpoint with recruiter_id
-      const result = await apiService.createOfferForRecruiter(recruiterId, offerData);
-      
-      // Show success message and redirect
-      alert(result.message || 'Job posted successfully!');
-      navigate('/dashboard');
+      // Map job level from frontend to backend
+      const jobLevelMap: { [key: string]: string } = {
+        'Junior': 'Junior',
+        'Mid Level': 'Mid-level',
+        'Senior': 'Senior',
+        'Executive': 'Senior' // Executive maps to Senior as backend doesn't have Executive
+      };
+
+      // Parse vacancies - handle ranges like "2-5" by taking the first number
+      let vacanciesNumber: number | undefined = undefined;
+      if (formData.vacancies) {
+        if (formData.vacancies.includes('+')) {
+          // For "10+", use 10
+          vacanciesNumber = parseInt(formData.vacancies.replace('+', ''));
+        } else if (formData.vacancies.includes('-')) {
+          // For "2-5", use the first number
+          vacanciesNumber = parseInt(formData.vacancies.split('-')[0]);
+        } else {
+          vacanciesNumber = parseInt(formData.vacancies);
+        }
+      }
+
+      // Set dates - MySQL DATE columns expect YYYY-MM-DD format
+      const today = new Date();
+      const dateOffer = today.toISOString().split('T')[0]; // Today's date in YYYY-MM-DD format
+      // expirationDate is already in YYYY-MM-DD format from the date input
+      const dateExpiration = formData.expirationDate || undefined;
+
+      // Debug: Log the date format to verify it's correct
+      console.log('Date offer format:', dateOffer, 'Type:', typeof dateOffer);
+      console.log('Date expiration format:', dateExpiration, 'Type:', typeof dateExpiration);
+
+      // Create offer data with both Offer and Requirement fields
+      const offerData = {
+        // Offer fields
+        title: formData.jobTitle,
+        date_offer: dateOffer,
+        date_expiration: dateExpiration,
+        // Requirement fields
+        jobTitle: formData.jobTitle,
+        tags: formData.tags || undefined,
+        jobRole: formData.jobRole || undefined,
+        minSalary: formData.minSalary ? parseFloat(formData.minSalary) : undefined,
+        maxSalary: formData.maxSalary ? parseFloat(formData.maxSalary) : undefined,
+        salaryType: formData.salaryType ? (salaryTypeMap[formData.salaryType] || formData.salaryType) as 'Yearly' | 'Monthly' | 'Hourly' : undefined,
+        education: formData.education || undefined,
+        experience: formData.experience || undefined,
+        jobType: formData.jobType ? (jobTypeMap[formData.jobType] || formData.jobType) as 'CDI' | 'CDD' | 'Stage' | 'Freelance' | 'Part-time' : undefined,
+        vacancies: vacanciesNumber,
+        expirationDate: dateExpiration,
+        jobLevel: formData.jobLevel ? (jobLevelMap[formData.jobLevel] || formData.jobLevel) as 'Junior' | 'Mid-level' | 'Senior' : undefined,
+        description: formData.description || undefined,
+        responsibilities: formData.responsibilities || undefined
+      };
+
+      // Call the correct API endpoint based on mode
+      if (isEditMode && editJobId) {
+        // Update existing job
+        const result = await apiService.updateOffer(parseInt(editJobId), offerData);
+        alert(result.message || 'Job updated successfully!');
+        navigate(`/job-details/${editJobId}`);
+      } else {
+        // Create new job
+        const result = await apiService.createOfferForRecruiter(recruiterId, offerData);
+        alert(result.message || 'Job posted successfully!');
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Error posting job:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to post job. Please try again.';
@@ -252,9 +365,13 @@ const PostJobPage: React.FC<DashboardProps> = ({ onLogout, user }) => {
 
         {/* Main Content */}
         <main className="post-job-main">
-          <h1 className="post-job-title">Post a job</h1>
+          {isLoading ? (
+            <div className="loading-state">Loading job data...</div>
+          ) : (
+            <>
+              <h1 className="post-job-title">{isEditMode ? 'Edit Job' : 'Post a job'}</h1>
 
-          <form onSubmit={handleSubmit} className="post-job-form">
+              <form onSubmit={handleSubmit} className="post-job-form">
             {/* Job Details Section */}
             <div className="form-section">
               <label htmlFor="jobTitle">Job Title</label>
@@ -492,11 +609,13 @@ const PostJobPage: React.FC<DashboardProps> = ({ onLogout, user }) => {
             <button 
               type="submit" 
               className="post-job-submit-btn"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
             >
-              Post Job →
+              {isEditMode ? 'Update Job →' : 'Post Job →'}
             </button>
           </form>
+            </>
+          )}
         </main>
       </div>
 
