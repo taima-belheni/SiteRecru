@@ -281,6 +281,9 @@ const RecruiterDashboard: React.FC<DashboardProps> = ({ onLogout, user }) => {
                   } else if (item.id === 'My_Jobs') {
                     // Open the dedicated My Jobs page
                     navigate('/my-jobs');
+                  } else if (item.id === 'Employers_Profile') {
+                    // Navigate to the employer profile page
+                    navigate('/employer-profile');
                   } else {
                     setActiveTab(item.id);
                   }
