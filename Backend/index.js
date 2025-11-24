@@ -3,6 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const db = require('./config/database');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +33,8 @@ const offerRoutes = require('./routes/offerRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
+const paymentRoutes = require('./routes/paymentRoutes');
+
 const auth = require('./middleware/auth'); // middleware JWT
 const adminRoutes = require('./routes/adminRoutes');
 
@@ -37,6 +42,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/recruiters', recruiterRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Appliquer le rate limiter uniquement sur la création d'offres
 app.use('/api/recruiters/:recruiterId/offers', offerLimiter);
