@@ -1,8 +1,21 @@
 const Stripe = require("stripe");
 const db = require("../config/database");
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+const hasStripeKey = !!process.env.STRIPE_SECRET_KEY;
+const paymentsDisabled = process.env.DISABLE_PAYMENTS === 'true' || !hasStripeKey;
+
+const stripe = !paymentsDisabled && hasStripeKey
+    ? Stripe(process.env.STRIPE_SECRET_KEY)
+    : null;
 
 exports.createCheckoutSession = async (req, res) => {
+    if (paymentsDisabled || !stripe) {
+        return res.status(503).json({
+            status: 'UNAVAILABLE',
+            message: 'Payments are temporarily disabled or Stripe is not configured'
+        });
+    }
+
     try {
         const { recruiter_id, pack_id } = req.body;
 

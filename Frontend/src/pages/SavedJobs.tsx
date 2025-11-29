@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Offer } from '../types';
+import { apiService } from '../services/api';
 import './SavedJobs.css';
 
 const SavedJobs = () => {
@@ -11,46 +12,12 @@ const SavedJobs = () => {
   useEffect(() => {
     const loadSavedJobs = async () => {
       try {
-        // Remplacer par un appel API réel
-        // const response = await apiService.getSavedJobs();
-        // setSavedJobs(response.data);
-        
-        // Données de démonstration
-        const demoJobs: Offer[] = [
-          {
-            id: 1,
-            recruiter_id: 1,
-            title: 'Développeur Full Stack',
-            date_offer: new Date().toISOString(),
-            description: 'Description du poste de développeur Full Stack',
-            location: 'Tunis',
-            company_name: 'TechCorp',
-            employment_type: 'Temps plein',
-            salary_min: 3000,
-            salary_max: 4000,
-            category: 'Développement',
-            requirements: []
-          },
-          {
-            id: 2,
-            recruiter_id: 2,
-            title: 'Designer UX/UI',
-            date_offer: new Date().toISOString(),
-            description: 'Description du poste de Designer UX/UI',
-            location: 'Sousse',
-            company_name: 'DesignHub',
-            employment_type: 'Temps plein',
-            salary_min: 2500,
-            salary_max: 3500,
-            category: 'Design',
-            requirements: []
-          }
-        ];
-        
-        setSavedJobs(demoJobs);
-        setIsLoading(false);
+        const data = await apiService.getSavedJobs();
+        setSavedJobs(data);
       } catch (error) {
         console.error('Erreur lors du chargement des emplois sauvegardés:', error);
+        setSavedJobs([]);
+      } finally {
         setIsLoading(false);
       }
     };
@@ -60,8 +27,7 @@ const SavedJobs = () => {
 
   const handleUnsaveJob = async (jobId: number) => {
     try {
-      // Remplacer par un appel API réel
-      // await apiService.unsaveJob(jobId);
+      await apiService.unsaveJob(jobId);
       setSavedJobs(savedJobs.filter(job => job.id !== jobId));
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'emploi sauvegardé:', error);

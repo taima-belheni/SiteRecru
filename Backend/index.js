@@ -1,12 +1,20 @@
 require('dotenv').config();
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const db = require('./config/database');
 
-// Stripe / Payments are optional and can be disabled during development
+// Stripe / Payments are optional and can be disabled durant development
 let stripe = null;
-if (process.env.DISABLE_PAYMENTS !== 'true') {
+const hasStripeKey = !!process.env.STRIPE_SECRET_KEY;
+const paymentsDisabled = process.env.DISABLE_PAYMENTS === 'true' || !hasStripeKey;
+
+if (paymentsDisabled) {
+    const reason = !hasStripeKey ? 'STRIPE_SECRET_KEY is not set' : 'DISABLE_PAYMENTS=true';
+    console.log(`Payments disabled: ${reason}`);
+} else {
     try {
         stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
         console.log('Payments enabled: Stripe initialized');
@@ -14,8 +22,6 @@ if (process.env.DISABLE_PAYMENTS !== 'true') {
         console.warn('Stripe not initialized:', err && err.message ? err.message : err);
         stripe = null;
     }
-} else {
-    console.log('Payments disabled via DISABLE_PAYMENTS=true');
 }
 
 
@@ -56,7 +62,7 @@ app.use('/api/candidates', candidateRoutes);
 app.use('/api/recruiters', recruiterRoutes);
 app.use('/api/admin', adminRoutes);
 // Mount payment routes only when payments are enabled
-if (process.env.DISABLE_PAYMENTS !== 'true') {
+if (!paymentsDisabled) {
     app.use('/api/payments', paymentRoutes);
 } else {
     // Optional: expose a small endpoint to indicate payments are disabled

@@ -161,63 +161,10 @@ const JobApplicationPage: React.FC<JobApplicationPageProps> = ({ user, isAuthent
 
       console.log('📨 Submitting application for job:', jobId);
 
-      // Create FormData for file upload
-      const uploadFormData = new FormData();
-      uploadFormData.append('offer_id', parseInt(jobId).toString());
-      uploadFormData.append('fullName', formData.fullName);
-      uploadFormData.append('email', formData.email);
-      uploadFormData.append('phone', formData.phone);
-      uploadFormData.append('address', formData.address);
-      if (formData.cvFile) {
-        uploadFormData.append('cv', formData.cvFile);
-      }
-      uploadFormData.append('portfolio', formData.portfolio);
-      uploadFormData.append('coverLetter', formData.coverLetter);
+      // Call backend API to create application (only offer_id required)
+      const application = await apiService.createApplication(parseInt(jobId));
 
-      // Log des données du formulaire pour le débogage
-      console.log('📝 Form data to submit:');
-      for (let [key, value] of uploadFormData.entries()) {
-        console.log(`${key}:`, value);
-      }
-
-      // Call backend API to create application
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/applications`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-          // Note: Ne pas définir 'Content-Type' pour FormData, le navigateur le fera automatiquement avec la bonne boundary
-        },
-        body: uploadFormData
-      });
-
-      let responseData;
-      const contentType = response.headers.get('content-type');
-      
-      try {
-        // Essayer de parser la réponse en JSON si le content-type est JSON
-        if (contentType && contentType.includes('application/json')) {
-          responseData = await response.json();
-        } else {
-          // Si ce n'est pas du JSON, lire le texte brut
-          const text = await response.text();
-          console.log('📥 Raw response:', text);
-          // Essayer de parser comme JSON au cas où le content-type serait incorrect
-          try {
-            responseData = JSON.parse(text);
-          } catch {
-            responseData = { message: text || 'Application submitted successfully' };
-          }
-        }
-      } catch (parseError) {
-        console.error('❌ Error parsing response:', parseError);
-        responseData = { message: 'Application submitted successfully' };
-      }
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      console.log('✅ Application submitted successfully:', responseData);
+      console.log('✅ Application submitted successfully:', application);
       setSuccessMessage('✅ Candidature envoyée avec succès ! Nous examinerons votre candidature et vous recontacterons bientôt.');
       
       // Reset form
@@ -232,9 +179,9 @@ const JobApplicationPage: React.FC<JobApplicationPageProps> = ({ user, isAuthent
         agreeToTerms: false
       });
 
-      // Redirection après 3 secondes
+      // Redirection vers Applied Jobs après 3 secondes
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/applied-jobs');
       }, 3000);
 
     } catch (err) {
@@ -349,7 +296,7 @@ const JobApplicationPage: React.FC<JobApplicationPageProps> = ({ user, isAuthent
           {successMessage && (
             <div className="alert alert-success">
               <p>{successMessage}</p>
-              <small>Redirecting to jobs list in 3 seconds...</small>
+              <small>Redirection vers Mes Candidatures dans 3 secondes...</small>
             </div>
           )}
 

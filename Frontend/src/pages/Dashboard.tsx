@@ -152,9 +152,22 @@ const Dashboard: React.FC<DashboardPropsExtended> = ({ onLogout, user }) => {
     // Mettre à jour l'onglet actif
     setActiveTab(id as ActiveTab);
     
-    // Si c'est Saved_Jobs, charger les emplois sauvegardés
+    // Si c'est Saved_Jobs, naviguer vers la page SavedJobs
     if (id === 'Saved_Jobs') {
-      loadSavedJobs();
+      navigate('/saved-jobs');
+      return;
+    }
+    
+    // Si c'est Settings, naviguer vers la page Settings
+    if (id === 'Settings') {
+      navigate('/settings');
+      return;
+    }
+    
+    // Si c'est Applied_Jobs, naviguer vers la page AppliedJobs
+    if (id === 'Applied_Jobs') {
+      navigate('/applied-jobs');
+      return;
     }
   };
   

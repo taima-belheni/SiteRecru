@@ -147,8 +147,14 @@ class ApiService {
       `/recruiters/${recruiterId}/offers`,
       { method: 'POST', body: JSON.stringify(offerData) }
     );
+    // Ensure offer exists before returning
+    if (!response.data?.offer) {
+      throw new Error('Offer creation failed: no offer returned');
+    }
+    // Type assertion: we know offer exists after the check above
+    const data = response.data as { offer: Offer; requirement: any; warnings?: string[] };
     // Return the full response (message + data) so caller can access warnings and message
-    return { message: response.message, data: response.data, success: response.success };
+    return { message: response.message, data, success: response.success };
   }
 
   async updateOffer(
@@ -274,6 +280,39 @@ class ApiService {
       method: 'PUT',
     });
     return response.data!;
+  }
+
+  // ===== SAVED JOBS =====
+  async getSavedJobs(): Promise<Offer[]> {
+    // TODO: Replace with real API endpoint when backend implements saved jobs
+    // const response = await this.request<Offer[]>('/candidates/saved-jobs');
+    // return response.data || [];
+    
+    // Mock implementation: return empty array for now
+    return [];
+  }
+
+  async saveJob(_offerId: number): Promise<{ message: string }> {
+    // TODO: Replace with real API endpoint when backend implements saved jobs
+    // const response = await this.request<{ message: string }>(`/candidates/saved-jobs`, {
+    //   method: 'POST',
+    //   body: JSON.stringify({ offer_id: offerId }),
+    // });
+    // return response.data!;
+    
+    // Mock implementation: just return success
+    return { message: 'Job saved successfully' };
+  }
+
+  async unsaveJob(_offerId: number): Promise<{ message: string }> {
+    // TODO: Replace with real API endpoint when backend implements saved jobs
+    // const response = await this.request<{ message: string }>(`/candidates/saved-jobs/${offerId}`, {
+    //   method: 'DELETE',
+    // });
+    // return response.data!;
+    
+    // Mock implementation: just return success
+    return { message: 'Job removed from saved jobs' };
   }
 }
 

@@ -5,9 +5,14 @@ const Payment = require("../models/Payment");
 const RecruiterSubscription = require("../models/RecruiterSubscription");
 
 // If payments are disabled via env, handlers will return 503 with a friendly message
-const paymentsDisabled = process.env.DISABLE_PAYMENTS === 'true';
+const hasStripeKey = !!process.env.STRIPE_SECRET_KEY;
+const paymentsDisabled = process.env.DISABLE_PAYMENTS === 'true' || !hasStripeKey;
 let stripe = null;
-if (!paymentsDisabled) {
+
+if (paymentsDisabled) {
+    const reason = !hasStripeKey ? 'STRIPE_SECRET_KEY is not set' : 'DISABLE_PAYMENTS=true';
+    console.log(`Payments disabled in paymentController: ${reason}`);
+} else {
     try {
         stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
     } catch (err) {

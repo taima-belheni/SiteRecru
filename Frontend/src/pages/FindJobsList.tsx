@@ -183,11 +183,11 @@ const FindJobsList: React.FC<FindJobsListProps> = ({ user, isAuthenticated, onLo
       
       if (isCurrentlySaved) {
         // Supprimer l'offre des sauvegardes
-        // await apiService.unsaveJob(job.id, user?.id);
+        await apiService.unsaveJob(job.id);
         setSavedJobs(savedJobs.filter(id => id !== job.id));
       } else {
         // Sauvegarder l'offre
-        // await apiService.saveJob(job.id, user?.id);
+        await apiService.saveJob(job.id);
         setSavedJobs([...savedJobs, job.id]);
       }
       
@@ -240,6 +240,24 @@ const FindJobsList: React.FC<FindJobsListProps> = ({ user, isAuthenticated, onLo
     } else if (itemId === 'Find_Job') {
       navigate('/find-jobs');
     }
+  };
+
+  // Handle sidebar item clicks
+  const handleSidebarClick = (itemId: string) => {
+    if (itemId === 'Saved_Jobs') {
+      navigate('/saved-jobs');
+      return;
+    }
+    if (itemId === 'Applied_Jobs') {
+      navigate('/applied-jobs');
+      return;
+    }
+    if (itemId === 'Settings') {
+      navigate('/settings');
+      return;
+    }
+    // For other items, just update active tab
+    setActiveTab(itemId);
   };
 
   // Load jobs from API
@@ -409,12 +427,7 @@ const FindJobsList: React.FC<FindJobsListProps> = ({ user, isAuthenticated, onLo
                 className={`sidebar-link ${activeTab === item.id ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  setActiveTab(item.id);
-                  if (item.id === 'Settings') {
-                    navigate('/settings');
-                  } else if (item.id === 'Applied_Jobs') {
-                    navigate('/applied-jobs');
-                  }
+                  handleSidebarClick(item.id);
                 }}
               >
                 <span className="sidebar-icon">{item.icon}</span>
