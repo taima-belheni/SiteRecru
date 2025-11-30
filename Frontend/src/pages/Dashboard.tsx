@@ -345,6 +345,10 @@ const Dashboard: React.FC<DashboardPropsExtended> = ({ onLogout, user }) => {
                     setActiveTab('Overview');
                   } else if (item.id === 'Find_Job') {
                     navigate('/find-jobs');
+                  } else if (item.id === 'Job_Alerts') {
+                    navigate('/notifications');
+                  } else if (item.id === 'Customer_Supports') {
+                    navigate('/customer-support');
                   }
                 }}
               >

@@ -129,7 +129,9 @@ function App() {
           } />
           <Route path="/dashboard" element={
             isAuthenticated ? (
-              user?.role === 'recruiter'
+              user?.role === 'admin'
+                ? <AdminDashboard onLogout={handleLogout} />
+                : user?.role === 'recruiter'
                 ? <RecruiterDashboard onLogout={handleLogout} user={user || undefined} />
                 : <Dashboard onLogout={handleLogout} user={user || undefined} isAuthenticated={isAuthenticated} />
             ) : <Navigate to="/signin" />

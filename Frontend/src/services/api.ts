@@ -5,7 +5,11 @@ import type {
   ApiResponse, 
   Offer, 
   Application, 
-  Notification 
+  Notification,
+  Candidate as CandidateType, // Renommer pour éviter le conflit
+  Recruiter as RecruiterType,
+  User as UserType,
+  AdminStats // Ajoutez cette ligne
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -85,6 +89,25 @@ class ApiService {
     }
   }
 
+  async signup(userData: Omit<User, 'id' | 'created_at' | 'updated_at' | 'name' | 'status' | 'lastActive' | 'avatar'>): Promise<{ user: UserType; token: string }> {
+    const url = `${API_BASE_URL}/auth/signup`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Registration failed');
+    }
+    if (data.status === 'SUCCESS' && data.data) {
+      return data.data; // Should contain { user, token }
+    }
+    throw new Error(data.message || 'Registration failed: invalid response');
+  }
+
   logout(): void {
     console.log('🚪 LOGOUT called - clearing token and user');
     this.token = null;
@@ -92,7 +115,7 @@ class ApiService {
     localStorage.removeItem('user');
   }
 
-  getCurrentUser(): User | null {
+  getCurrentUser(): UserType | null {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   }
@@ -114,6 +137,91 @@ class ApiService {
     this.token = storedToken;
     console.log('✅ Authenticated: token and user found');
     return true;
+  }
+
+  // ===== ADMIN ROUTES =====
+  async getUsers(): Promise<UserType[]> {
+    const response = await this.request<UserType[]>('/admin/users');
+    return response.data || [];
+  }
+
+  async getUserById(id: number): Promise<UserType> {
+    const response = await this.request<UserType>(`/admin/users/${id}`);
+    return response.data!;
+  }
+
+  async updateUserRole(id: number, role: string): Promise<{ message: string; data: UserType }> {
+    const response = await this.request<{ message: string; data: UserType }>(`/admin/users/${id}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+    return response.data!;
+  }
+
+  async deleteUser(id: number): Promise<{ message: string }> {
+    const response = await this.request<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' });
+    return response.data!;
+  }
+
+  async getAdminCandidates(): Promise<CandidateType[]> {
+    const response = await this.request<CandidateType[]>('/admin/candidates');
+    return response.data || [];
+  }
+
+  async getCandidateById(id: number): Promise<CandidateType> {
+    const response = await this.request<CandidateType>(`/admin/candidates/${id}`);
+    return response.data!;
+  }
+
+  async deleteCandidate(id: number): Promise<{ message: string }> {
+    const response = await this.request<{ message: string }>(`/admin/candidates/${id}`, { method: 'DELETE' });
+    return response.data!;
+  }
+
+  async getAdminRecruiters(): Promise<RecruiterType[]> {
+    const response = await this.request<RecruiterType[]>('/admin/recruiters');
+    return response.data || [];
+  }
+
+  async getRecruiterById(id: number): Promise<RecruiterType> {
+    const response = await this.request<RecruiterType>(`/admin/recruiters/${id}`);
+    return response.data!;
+  }
+
+  async deleteRecruiter(id: number): Promise<{ message: string }> {
+    const response = await this.request<{ message: string }>(`/admin/recruiters/${id}`, { method: 'DELETE' });
+    return response.data!;
+  }
+
+  async getAdminApplications(): Promise<Application[]> {
+    const response = await this.request<Application[]>('/admin/applications');
+    return response.data || [];
+  }
+
+  // Note: application status update and delete are already in the main application section
+  // We can reuse updateApplicationStatus and deleteApplication if they are secured by isAdmin middleware
+  // If not, we might need admin-specific versions.
+
+  // Reusing existing updateApplicationStatus and deleteApplication for admin context
+  // assuming they are protected by auth and isAdmin middleware on the backend
+  async updateApplicationStatusAdmin(id: number, status: string): Promise<{ message: string }> {
+    // The admin route is PUT /admin/applications/:id/status
+    const response = await this.request<{ message: string }>(`/admin/applications/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+    return response.data!;
+  }
+
+  async deleteApplicationAdmin(id: number): Promise<{ message: string }> {
+    // The admin route is DELETE /admin/applications/:id
+    const response = await this.request<{ message: string }>(`/admin/applications/${id}`, { method: 'DELETE' });
+    return response.data!;
+  }
+
+  async getAdminStats(): Promise<AdminStats> {
+    const response = await this.request<AdminStats>('/admin/stats');
+    return response.data!;
   }
 
   // ===== HEALTH CHECK =====

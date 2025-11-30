@@ -6,10 +6,15 @@ export interface User {
   last_name: string;
   first_name: string;
   email: string;
-  password: string;
+  password?: string; // Make password optional for fetched users
   role: 'recruiter' | 'candidate' | 'admin';
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
+  // Properties added for AdminDashboard display (assuming these are populated by backend joins or derived)
+  name?: string;
+  status?: 'Active' | 'Pending' | 'Inactive';
+  lastActive?: string;
+  avatar?: string;
 }
 
 // Types pour les recruteurs
@@ -21,6 +26,10 @@ export interface Recruiter {
   description?: string;
   company_email?: string;
   company_address?: string;
+  // Properties added for AdminDashboard display
+  user?: User; // Use the updated User interface
+  status?: 'Active' | 'Pending' | 'Inactive';
+  postedOffers?: number;
 }
 
 // Types pour les candidats
@@ -29,6 +38,10 @@ export interface Candidate {
   user_id: number;
   cv?: string;
   image?: string;
+  // Properties added for AdminDashboard display
+  user?: User; // Use the updated User interface
+  status?: 'Active' | 'Pending' | 'Inactive';
+  profileViews?: number;
 }
 
 // Types pour les administrateurs
@@ -71,10 +84,14 @@ export interface Application {
   id: number;
   candidate_id: number;
   offer_id: number;
-  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'interview';
   date_application: string;
   candidate?: Candidate;
   offer?: Offer;
+  // Properties added for AdminDashboard display
+  candidateName?: string;
+  jobTitle?: string;
+  dateApplied?: string;
 }
 
 // Types pour les notifications
@@ -168,7 +185,15 @@ export interface SignInProps {
 export type ActiveTab = 'Home' | 'Overview' | 'Applied_Jobs' | 'Saved_Jobs' | 'Job_Alert' | 'Settings';
 export type RecruiterActiveTab = 'Overview' | 'Employers_Profile' | 'Post_a_Job' | 'My_Jobs' | 'Saved_Candidate' | 'Plans_Billing' | 'All_Companies' | 'Settings';
 export type UserRole = 'recruiter' | 'candidate' | 'admin';
-export type ApplicationStatus = 'pending' | 'reviewed' | 'accepted' | 'rejected';
+export type ApplicationStatus = 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'interview';
+
+export interface Activity {
+  id: number;
+  type: 'user' | 'payment';
+  title: string;
+  subtitle: string;
+  time: string;
+}
 
 // Types pour les emplois postés par les recruteurs
 export interface PostedJob {
@@ -185,6 +210,15 @@ export interface PostedJob {
 export interface RecruiterStats {
   openJobs: number;
   savedCandidates: number;
+}
+
+// Types pour les statistiques admin
+export interface AdminStats {
+  users: number;
+  candidates: number;
+  recruiters: number;
+  offers: number;
+  applications: number;
 }
 
 // Types pour les réponses API
